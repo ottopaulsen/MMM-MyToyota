@@ -1,0 +1,17 @@
+{
+  "name": "mmm-mytoyota",
+  "version": "0.1.0",
+  "description": "Show data from your Toyota via Toyota Connected Services (MyToyota)",
+  "main": "MMM-MyToyota.js",
+  "author": "Otto Paulsen",
+  "license": "MIT",
+  "keywords": [
+    "magicmirror",
+    "magicmirror-module",
+    "toyota",
+    "mytoyota"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

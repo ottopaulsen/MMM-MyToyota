@@ -42,6 +42,9 @@ Module.register("MMM-MyToyota", {
         logging: false,
         colors: {
             car: "gray",
+            // The wall box and its cable are not part of the car, so they keep
+            // their own colour when the car is painted.
+            charger: "gray",
             text: "#ccc",
             rangeText: "black",
             chargingSign: "yellow",
@@ -248,13 +251,14 @@ Module.register("MMM-MyToyota", {
             .stroke({ width: 8, color: baseColor })
             .hide()
             .attr('id', 'cable_disconnected');
+        const chargerColor = config.colors.charger || baseColor;
         const chargerBox = svg.rect(15, 50)
             .move(0, 55)
             .radius(2)
-            .fill(baseColor)
+            .fill(chargerColor)
             .attr('id', 'charger_box');
         const wall = svg.line(0, 0, 0, 300)
-            .stroke({ width: 1, color: baseColor })
+            .stroke({ width: 1, color: chargerColor })
             .attr('id', 'wall');
         const charging = svg.polygon("60,65 90,25 100,35 130,10 100,55 90,45")
             .fill("yellow")
@@ -417,9 +421,10 @@ Module.register("MMM-MyToyota", {
         const FLARE_R = WHEEL_R + 14;
 
         // Charging point, left of the car, behind the body.
+        const chargerColor = config.colors.charger || baseColor;
         const wall = svg.rect(9, 120).move(0, 180).fill(darkColor).hide();
         const chargerBox = svg.rect(22, 32).move(-8, 210).radius(4)
-            .fill(baseColor).stroke({ width: 2, color: darkColor }).hide();
+            .fill(chargerColor).stroke({ width: 2, color: darkColor }).hide();
         const cableConnected = svg.path("M14 242 C 14 292, 28 296, 28 258")
             .fill("none").stroke({ width: 5, color: config.colors.chargingSign }).hide();
         const cableDisConnected = svg.path("M14 242 C 14 288, 22 296, 16 306")

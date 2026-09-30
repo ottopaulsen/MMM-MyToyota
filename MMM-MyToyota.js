@@ -389,24 +389,16 @@ Module.register("MMM-MyToyota", {
     /*
      * "Touring" — a bZ4X Touring seen from the side, facing left.
      *
-     * Crossover-estate proportions: long flat roof, short EV bonnet, upright
-     * tail, high sill with dark cladding over the wheel arches. Deliberately
-     * flat and low detail so it reads at a glance on a mirror.
+     * Proportions taken off a factory side-on photo rather than from memory:
+     *   length : height          about 2.8 : 1
+     *   wheel diameter           about 43% of overall height
+     *   wheelbase                0.18 to 0.80 of the length
+     *   glass                    shallow, roughly a third of the body height
+     * The defining features are the big squared black wheel-arch flares and
+     * the sill cladding, the nose dropping steeply to a low pointed bumper,
+     * and a raked tailgate with a roof spoiler. Roof rails stand proud.
      *
-     * Everything is laid out in the 400x400 viewbox, so the data positions
-     * here are unrelated to the ones in drawDefault.
-     */
-    /*
-     * "Touring" — a bZ4X Touring seen from the side, facing left.
-     *
-     * Proportions are what make it read as a large estate rather than a
-     * hatchback: the body is about three times longer than it is tall, the
-     * greenhouse is shallow against a high beltline, the wheels are modest
-     * relative to the length, and the roof runs flat a long way back before a
-     * near-upright tailgate. Roof rails sit on top.
-     *
-     * Laid out in the 400x400 viewbox; these positions are unrelated to the
-     * ones in drawDefault.
+     * Laid out in the 400x400 viewbox; unrelated to drawDefault's positions.
      */
     drawTouring: function (config) {
         const baseColor = config.colors.car;
@@ -418,76 +410,81 @@ Module.register("MMM-MyToyota", {
         const svg = SVG(this.drawingId()).size(config.size, config.size)
             .viewbox(0, 0, 400, 400);
 
-        const NOSE = 14, TAIL = 386;          // 372 long
-        const ROOF = 150, SILL = 272;         // 122 tall -> ~3:1, a big wagon
-        const AXLE_Y = 272, WHEEL_R = 30;     // small wheels read as a large car
-        const FRONT_X = 92, REAR_X = 310;     // long wheelbase, real overhangs
+        const NOSE = 12, TAIL = 388;
+        const ROOF = 164, BELT = 210, SILL = 284, GROUND = 300;
+        const WHEEL_R = 29, AXLE_Y = GROUND - WHEEL_R;
+        const FRONT_X = 82, REAR_X = 312;
+        const FLARE_R = WHEEL_R + 14;
 
         // Charging point, left of the car, behind the body.
-        const wall = svg.rect(9, 120).move(0, 176).fill(darkColor).hide();
-        const chargerBox = svg.rect(22, 32).move(-6, 206).radius(4)
+        const wall = svg.rect(9, 120).move(0, 180).fill(darkColor).hide();
+        const chargerBox = svg.rect(22, 32).move(-8, 210).radius(4)
             .fill(baseColor).stroke({ width: 2, color: darkColor }).hide();
-        const cableConnected = svg.path("M16 238 C 16 288, 30 292, 30 250")
+        const cableConnected = svg.path("M14 242 C 14 292, 28 296, 28 258")
             .fill("none").stroke({ width: 5, color: config.colors.chargingSign }).hide();
-        const cableDisConnected = svg.path("M16 238 C 16 284, 24 292, 18 302")
+        const cableDisConnected = svg.path("M14 242 C 14 288, 22 296, 16 306")
             .fill("none").stroke({ width: 5, color: darkColor }).hide();
 
         const car = svg.group().attr("id", "car");
 
-        // Roof rails, drawn under the body so the roof edge covers their feet.
-        car.rect(196, 7).move(124, ROOF - 11).radius(3).fill(darkColor);
-        car.rect(9, 9).move(130, ROOF - 6).fill(darkColor);
-        car.rect(9, 9).move(302, ROOF - 6).fill(darkColor);
+        // Roof rails, standing proud of the roof.
+        car.rect(168, 6).move(166, ROOF - 12).radius(3).fill(darkColor);
+        car.rect(8, 8).move(174, ROOF - 7).fill(darkColor);
+        car.rect(8, 8).move(320, ROOF - 7).fill(darkColor);
 
-        // Body.
+        // Body: steep nose, shallow glass, raked tailgate.
+        const ROOF_FRONT_X = 168, ROOF_REAR_X = 322;
         const body = car.path(
-            `M${NOSE} ${SILL} L${NOSE} 230 L26 216 L70 204 L114 ${ROOF + 4} ` +
-            `L328 ${ROOF} L356 198 L374 208 L${TAIL} 226 L${TAIL} ${SILL} Z`)
+            `M${NOSE} ${SILL} L${NOSE} 250 L28 234 L100 ${BELT + 2} L150 170 ` +
+            `L${ROOF_FRONT_X} ${ROOF} L${ROOF_REAR_X} ${ROOF} L340 170 ` +
+            `L368 198 L380 214 L${TAIL} 232 L${TAIL} ${SILL} Z`)
             .fill(baseColor);
 
-        // Dark cladding along the sill, the way the bZ4X carries it.
-        car.path(`M${NOSE} 256 L${TAIL} 256 L${TAIL} ${SILL} L${NOSE} ${SILL} Z`)
-            .fill(darkColor).opacity(0.5);
+        // Glass, as one dark band with body-coloured pillars over it.
+        car.polygon(`154,174 330,172 352,${BELT - 2} 122,${BELT - 2}`).fill(darkColor);
+        car.rect(7, BELT - 176).move(212, 174).fill(baseColor);
+        car.rect(7, BELT - 176).move(268, 174).fill(baseColor);
+        const top = car.polygon(`326,172 350,${BELT - 2} 338,${BELT - 2} 316,174`).fill(baseColor);
 
-        // Greenhouse: shallow, with a long cargo window so it reads as an
-        // estate rather than a hatchback.
-        car.polygon("126,160 188,158 188,202 110,202").fill(darkColor);
-        car.polygon("198,158 262,157 262,202 198,202").fill(darkColor);
-        const top = car.polygon("272,157 324,155 324,202 272,202").fill(darkColor);
+        // Black lower cladding along the sill, and the low front bumper.
+        car.rect(TAIL - NOSE, 14).move(NOSE, SILL - 14).fill(darkColor);
+        // Angular headlight and the rear light bar.
+        const leftLight = car.polygon("20,246 52,234 56,242 24,254").fill(config.colors.lightsOff);
+        const rightLight = car.rect(16, 6).move(TAIL - 20, 228).radius(2).fill(config.colors.lightsOff);
 
-        // Lights.
-        const leftLight = car.rect(14, 9).move(NOSE, 224).radius(3).fill(config.colors.lightsOff);
-        const rightLight = car.rect(10, 17).move(TAIL - 10, 214).radius(3).fill(config.colors.lightsOff);
-
-        // Arches cut out of the body, then the wheels.
-        const ARCH_R = WHEEL_R + 3;
-        svg.circle(ARCH_R * 2).center(FRONT_X, AXLE_Y).fill(bg);
-        svg.circle(ARCH_R * 2).center(REAR_X, AXLE_Y).fill(bg);
-        car.path(`M${FRONT_X - ARCH_R} ${AXLE_Y} a${ARCH_R} ${ARCH_R} 0 0 1 ${ARCH_R * 2} 0`)
-            .fill("none").stroke({ width: 6, color: darkColor });
-        car.path(`M${REAR_X - ARCH_R} ${AXLE_Y} a${ARCH_R} ${ARCH_R} 0 0 1 ${ARCH_R * 2} 0`)
-            .fill("none").stroke({ width: 6, color: darkColor });
+        // Arches: cut the body, then the chunky black flares.
+        const arch = (cx) =>
+            `M${cx - FLARE_R} ${SILL - 2} L${cx - FLARE_R} ${AXLE_Y} ` +
+            `A${FLARE_R} ${FLARE_R} 0 0 1 ${cx + FLARE_R} ${AXLE_Y} ` +
+            `L${cx + FLARE_R} ${SILL - 2} L${cx + WHEEL_R + 1} ${SILL - 2} ` +
+            `L${cx + WHEEL_R + 1} ${AXLE_Y} ` +
+            `A${WHEEL_R + 1} ${WHEEL_R + 1} 0 0 0 ${cx - WHEEL_R - 1} ${AXLE_Y} ` +
+            `L${cx - WHEEL_R - 1} ${SILL - 2} Z`;
+        svg.circle((WHEEL_R + 1) * 2).center(FRONT_X, AXLE_Y).fill(bg);
+        svg.circle((WHEEL_R + 2) * 2).center(REAR_X, AXLE_Y).fill(bg);
+        svg.path(arch(FRONT_X)).fill(darkColor);
+        svg.path(arch(REAR_X)).fill(darkColor);
 
         const leftWheel = svg.circle(WHEEL_R * 2).center(FRONT_X, AXLE_Y).fill(darkColor);
         const rightWheel = svg.circle(WHEEL_R * 2).center(REAR_X, AXLE_Y).fill(darkColor);
-        svg.circle(WHEEL_R).center(FRONT_X, AXLE_Y).fill(baseColor);
-        svg.circle(WHEEL_R).center(REAR_X, AXLE_Y).fill(baseColor);
-        svg.circle(WHEEL_R * 0.42).center(FRONT_X, AXLE_Y).fill(darkColor);
-        svg.circle(WHEEL_R * 0.42).center(REAR_X, AXLE_Y).fill(darkColor);
+        svg.circle(WHEEL_R * 1.24).center(FRONT_X, AXLE_Y).fill(baseColor).opacity(0.85);
+        svg.circle(WHEEL_R * 1.24).center(REAR_X, AXLE_Y).fill(baseColor).opacity(0.85);
+        svg.circle(WHEEL_R * 0.5).center(FRONT_X, AXLE_Y).fill(darkColor);
+        svg.circle(WHEEL_R * 0.5).center(REAR_X, AXLE_Y).fill(darkColor);
 
         // Battery, on the front door.
         const battery = svg.group().attr("id", "battery");
-        const batteryBody = battery.rect(98, 30).move(126, 214).radius(5)
+        const batteryBody = battery.rect(96, 30).move(132, 224).radius(5)
             .fill(baseColor).hide();
-        const batteryTop = battery.rect(7, 14).move(224, 222).radius(2)
+        const batteryTop = battery.rect(7, 14).move(228, 232).radius(2)
             .fill(baseColor).hide();
         const batteryLevel = batteryBody.clone().attr("id", "battery_level");
         const batteryPercent = svg.text("")
-            .move(175, 215)
+            .move(180, 225)
             .font({ size: 24, anchor: "middle", fill: config.colors.batteryPercent })
             .attr("id", "battery_percent");
 
-        const charging = svg.path("M244 208 l-12 22 l10 0 l-6 18 l16 -24 l-10 0 l8 -16 z")
+        const charging = svg.path("M248 218 l-12 22 l10 0 l-6 18 l16 -24 l-10 0 l8 -16 z")
             .fill(config.colors.chargingSign).hide();
 
         // Readouts outside the body, where there is contrast.
@@ -516,10 +513,10 @@ Module.register("MMM-MyToyota", {
 
         // Padlock, above the roof rails.
         const lockGroup = svg.group().attr("id", "lock").hide();
-        const lockBody = lockGroup.rect(28, 22).move(186, 96).radius(4).fill("#00dd50");
-        const lockShackleLocked = lockGroup.path("M193 96 v-8 a7 7 0 0 1 14 0 v8")
+        const lockBody = lockGroup.rect(28, 22).move(186, 104).radius(4).fill("#00dd50");
+        const lockShackleLocked = lockGroup.path("M193 104 v-8 a7 7 0 0 1 14 0 v8")
             .fill("none").stroke({ width: 5, color: "#00dd50" });
-        const lockShackleOpen = lockGroup.path("M193 96 v-8 a7 7 0 0 1 14 0")
+        const lockShackleOpen = lockGroup.path("M193 104 v-8 a7 7 0 0 1 14 0")
             .fill("none").stroke({ width: 5, color: "#00dd50" }).hide();
 
         return {

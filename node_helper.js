@@ -94,23 +94,32 @@ function mapToCarData(data, carData) {
   }
 
   if (status) {
-    // Locked only if every door that reports a lock status says locked.
+    // Toyota reports component state as { status, lastUpdateTimestamp }.
+    // Locked only if every door that reports a lock status says locked; the
+    // hood reports openStatus only, so it is skipped here.
     const doors = status.doors || {};
     const lockStates = Object.values(doors)
-      .map((d) => d && d.lockStatus && d.lockStatus.value)
+      .map((d) => d && d.lockStatus && d.lockStatus.status)
       .filter((v) => v !== undefined && v !== null);
     if (lockStates.length) {
-      const locked = lockStates.every((v) => String(v).toLowerCase().includes("lock") &&
-                                             !String(v).toLowerCase().includes("unlock"));
+      const locked = lockStates.every((v) => String(v).toLowerCase() === "locked");
       set(carData, "lockState", "Lock state", locked ? "LOCKED" : "UNLOCKED");
+    }
+
+    const openStates = Object.values(doors)
+      .map((d) => d && d.openStatus && d.openStatus.status)
+      .filter((v) => v !== undefined && v !== null);
+    if (openStates.length) {
+      const anyOpen = openStates.some((v) => String(v).toLowerCase() !== "close");
+      set(carData, "doorState", "Doors", anyOpen ? "OPEN" : "CLOSED");
     }
 
     const windows = status.windows || {};
     const windowStates = Object.values(windows)
-      .map((w) => w && w.value)
+      .map((w) => w && w.status)
       .filter((v) => v !== undefined && v !== null);
     if (windowStates.length) {
-      const anyOpen = windowStates.some((v) => String(v).toLowerCase().includes("open"));
+      const anyOpen = windowStates.some((v) => String(v).toLowerCase() !== "close");
       set(carData, "windowState", "Windows", anyOpen ? "OPEN" : "CLOSED");
     }
   }

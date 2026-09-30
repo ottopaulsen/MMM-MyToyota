@@ -478,11 +478,15 @@ Module.register("MMM-MyToyota", {
         // Position
         if (config.showPosition) {
             if (carData.has("latitude")) {
-                if (carData.has("driving") && carData.get("driving").value == "NO") {
-                    const p = this.findPosition(carData);
-                    drawing.position.text(p);
-                } else {
+                // Toyota does not report a driving flag at all, so absence of
+                // one means parked — the same convention isNotDriving uses
+                // above. Requiring an explicit "NO" made the car look like it
+                // was permanently driving.
+                const isDriving = carData.has("driving") && carData.get("driving").value == "YES";
+                if (isDriving) {
                     drawing.position.text(this.translate("DRIVING"));
+                } else {
+                    drawing.position.text(this.findPosition(carData));
                 }
             } else {
                 // No GPS data available from EU Data Act portal

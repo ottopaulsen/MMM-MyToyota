@@ -28,6 +28,9 @@ Module.register("MMM-MyToyota", {
         // Toyota's servers update roughly every 15 minutes, and polling
         // harder does not produce fresher data.
         refreshIntervalSeconds: 900,
+        // Which car drawing to use. See carImages at the bottom of this file;
+        // add an entry there to offer another one.
+        image: "Default",
         size: 300,
         showDistance: true,
         showPosition: true,
@@ -182,7 +185,28 @@ Module.register("MMM-MyToyota", {
         return closestPosition || distanceFromHome || "";
     },
 
+    // A do-nothing element, so a drawing need only build the parts it wants.
+    // updateCar calls .hide()/.text()/.fill() on everything unconditionally.
+    noElement: function () {
+        const self = {};
+        ["show", "hide", "text", "fill", "stroke", "move", "size", "width",
+         "height", "attr", "radius", "center", "front", "back"].forEach((m) => {
+            self[m] = () => self;
+        });
+        return self;
+    },
+
+    // Pick the drawing named by config.image, falling back to Default.
     drawCar: function (config) {
+        const name = config.image || "Default";
+        const draw = this.carImages[name] || this.carImages.Default;
+        if (!this.carImages[name]) {
+            console.log(this.name + ": unknown image '" + name + "', using Default");
+        }
+        return draw.call(this, config);
+    },
+
+    drawDefault: function (config) {
         const baseColor = config.colors.car;
         const textColor = config.colors.text;
         const batteryColor = config.colors.emptyBattery;
@@ -360,6 +384,144 @@ Module.register("MMM-MyToyota", {
             antenna,
             antennaTop
         }
+    },
+
+    /*
+     * "Touring" — a bZ4X Touring seen from the side, facing left.
+     *
+     * Crossover-estate proportions: long flat roof, short EV bonnet, upright
+     * tail, high sill with dark cladding over the wheel arches. Deliberately
+     * flat and low detail so it reads at a glance on a mirror.
+     *
+     * Everything is laid out in the 400x400 viewbox, so the data positions
+     * here are unrelated to the ones in drawDefault.
+     */
+    drawTouring: function (config) {
+        const baseColor = config.colors.car;
+        const textColor = config.colors.text;
+        const darkColor = config.colors.wheels;
+        // Wheel arches are cut by painting the background colour over the
+        // body, so this has to match what the mirror sits on.
+        const bg = config.colors.background || "black";
+        const svg = SVG(this.drawingId()).size(config.size, config.size)
+            .viewbox(0, 0, 400, 400);
+
+        const FRONT_X = 112, REAR_X = 292, AXLE_Y = 268, WHEEL_R = 38;
+
+        // Charging point, left of the car, behind the body.
+        const wall = svg.rect(10, 130).move(0, 170).fill(darkColor).hide();
+        const chargerBox = svg.rect(24, 36).move(-6, 206).radius(4)
+            .fill(baseColor).stroke({ width: 2, color: darkColor }).hide();
+        const cableConnected = svg.path("M18 242 C 20 292, 40 296, 44 254")
+            .fill("none").stroke({ width: 5, color: config.colors.chargingSign }).hide();
+        const cableDisConnected = svg.path("M18 242 C 20 288, 30 296, 24 306")
+            .fill("none").stroke({ width: 5, color: darkColor }).hide();
+
+        const car = svg.group().attr("id", "car");
+
+        /*
+         * Body. Crossover-estate proportions: short EV nose, steeply raked
+         * windscreen, a long roof carried flat all the way back, and an
+         * upright tailgate. The sill sits well above the axle line so the
+         * car has visible ground clearance.
+         */
+        const body = car.path(
+            "M26 284 L26 236 L40 222 L88 206 L128 150 " +   // nose, screen
+            "L300 144 L338 200 L366 212 L374 238 L374 284 Z") // roof, tail
+            .fill(baseColor);
+
+        // Darker lower cladding along the sill.
+        car.path("M26 268 L374 268 L374 284 L26 284 Z").fill(darkColor).opacity(0.55);
+
+        // Greenhouse: three panes, so it reads as an estate rather than a
+        // hatchback.
+        car.polygon("136,158 196,156 196,198 120,198").fill(darkColor);
+        car.polygon("206,156 272,154 272,198 206,198").fill(darkColor);
+        const top = car.polygon("282,154 316,198 282,198").fill(darkColor);
+
+        // Lights.
+        const leftLight = car.rect(13, 10).move(26, 230).radius(3).fill(config.colors.lightsOff);
+        const rightLight = car.rect(11, 16).move(363, 216).radius(3).fill(config.colors.lightsOff);
+
+        // Wheel arches, cut out of the body, then the wheels themselves.
+        const ARCH_R = WHEEL_R + 3;
+        svg.circle(ARCH_R * 2).center(FRONT_X, AXLE_Y).fill(bg);
+        svg.circle(ARCH_R * 2).center(REAR_X, AXLE_Y).fill(bg);
+        car.path(`M${FRONT_X - ARCH_R} ${AXLE_Y} a${ARCH_R} ${ARCH_R} 0 0 1 ${ARCH_R * 2} 0`)
+            .fill("none").stroke({ width: 6, color: darkColor });
+        car.path(`M${REAR_X - ARCH_R} ${AXLE_Y} a${ARCH_R} ${ARCH_R} 0 0 1 ${ARCH_R * 2} 0`)
+            .fill("none").stroke({ width: 6, color: darkColor });
+
+        const leftWheel = svg.circle(WHEEL_R * 2).center(FRONT_X, AXLE_Y).fill(darkColor);
+        const rightWheel = svg.circle(WHEEL_R * 2).center(REAR_X, AXLE_Y).fill(darkColor);
+        svg.circle(WHEEL_R).center(FRONT_X, AXLE_Y).fill(baseColor);
+        svg.circle(WHEEL_R).center(REAR_X, AXLE_Y).fill(baseColor);
+        svg.circle(WHEEL_R * 0.45).center(FRONT_X, AXLE_Y).fill(darkColor);
+        svg.circle(WHEEL_R * 0.45).center(REAR_X, AXLE_Y).fill(darkColor);
+
+        // Battery, on the front door.
+        const battery = svg.group().attr("id", "battery");
+        const batteryBody = battery.rect(100, 32).move(140, 214).radius(5)
+            .fill(baseColor).hide();
+        const batteryTop = battery.rect(7, 15).move(240, 222).radius(2)
+            .fill(baseColor).hide();
+        const batteryLevel = batteryBody.clone().attr("id", "battery_level");
+        const batteryPercent = svg.text("")
+            .move(190, 215)
+            .font({ size: 25, anchor: "middle", fill: config.colors.batteryPercent })
+            .attr("id", "battery_percent");
+
+        const charging = svg.path("M258 206 l-13 24 l11 0 l-7 20 l18 -26 l-11 0 l9 -18 z")
+            .fill(config.colors.chargingSign).hide();
+
+        // Readouts live outside the body, where there is contrast.
+        const distance = svg.text("")
+            .move(26, 332)
+            .font({ size: 21, anchor: "start", fill: textColor })
+            .attr("id", "distance");
+        const range = svg.text("")
+            .move(374, 332)
+            .font({ size: 21, anchor: "end", fill: textColor, weight: 600 })
+            .attr("id", "range");
+        const remainingChargingTime = svg.text("")
+            .move(200, 350)
+            .font({ size: 18, anchor: "middle", fill: textColor })
+            .attr("id", "remaining_charging_time");
+        const position = svg.text("")
+            .move(200, 370)
+            .font({ size: 24, anchor: "middle", fill: textColor })
+            .attr("id", "position");
+        const outsideTemp = svg.text("")
+            .move(26, 40)
+            .font({ size: 22, anchor: "start", fill: textColor });
+        const lastConnection = svg.text("MyToyota")
+            .move(374, 40)
+            .font({ size: 18, anchor: "end", fill: textColor });
+
+        // Padlock, above the roof.
+        const lockGroup = svg.group().attr("id", "lock").hide();
+        const lockBody = lockGroup.rect(28, 22).move(186, 100).radius(4).fill("#00dd50");
+        const lockShackleLocked = lockGroup.path("M193 100 v-8 a7 7 0 0 1 14 0 v8")
+            .fill("none").stroke({ width: 5, color: "#00dd50" });
+        const lockShackleOpen = lockGroup.path("M193 100 v-8 a7 7 0 0 1 14 0")
+            .fill("none").stroke({ width: 5, color: "#00dd50" }).hide();
+
+        return {
+            svg, body, top, leftLight, rightLight, leftWheel, rightWheel,
+            cableConnected, cableDisConnected, chargerBox, wall, charging,
+            distance, battery, batteryBody, batteryTop, batteryLevel,
+            batteryPercent, range, remainingChargingTime, position,
+            driver: this.noElement(), driverHead: this.noElement(),
+            antenna: this.noElement(),
+            lastConnection, outsideTemp,
+            lockGroup, lockBody, lockShackleLocked, lockShackleOpen
+        };
+    },
+
+    // Add an entry here to offer another drawing via config.image.
+    carImages: {
+        Default: function (config) { return this.drawDefault(config); },
+        Touring: function (config) { return this.drawTouring(config); }
     },
 
     updateCar: function (drawing, carData, config) {

@@ -1,0 +1,16 @@
+/*
+ * The car is drawn in a 400x400 viewbox but does not fill it: there is about
+ * 55px of empty space below the drawing inside the SVG box, which adds to
+ * MagicMirror's module spacing. Stacked under MMM-WeConnect that made the
+ * visible gap between the two cars roughly 90px, far more than between any
+ * other pair of modules.
+ *
+ * Pull this module up so the two cars sit about 50px apart. The selector has
+ * to be at least as specific as MagicMirror's own
+ *   .region.bottom .module { margin-top: var(--gap-modules) }
+ * in css/main.css, or it is simply ignored. Adjust the value if the modules
+ * around it change.
+ */
+.region.bottom .module.MMM-MyToyota {
+  margin-top: -10px;
+}

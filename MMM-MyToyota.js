@@ -28,9 +28,6 @@ Module.register("MMM-MyToyota", {
         // Toyota's servers update roughly every 15 minutes, and polling
         // harder does not produce fresher data.
         refreshIntervalSeconds: 900,
-        // Which car drawing to use. See carImages at the bottom of this file;
-        // add an entry there to offer another one.
-        image: "Default",
         size: 300,
         showDistance: true,
         showPosition: true,
@@ -112,8 +109,8 @@ Module.register("MMM-MyToyota", {
         const self = this;
         const wrapper = document.createElement("div");
         const svgDiv = document.createElement("div");
-        // Must be unique: MMM-WeConnect draws into an element called
-        // "carDrawing" as well, and duplicate ids make SVG() pick the wrong one.
+        // Unique per instance: a fixed id would collide with any other module
+        // drawing into an element of the same name.
         svgDiv.setAttribute("id", this.drawingId());
         wrapper.appendChild(svgDiv);
 
@@ -188,28 +185,7 @@ Module.register("MMM-MyToyota", {
         return closestPosition || distanceFromHome || "";
     },
 
-    // A do-nothing element, so a drawing need only build the parts it wants.
-    // updateCar calls .hide()/.text()/.fill() on everything unconditionally.
-    noElement: function () {
-        const self = {};
-        ["show", "hide", "text", "fill", "stroke", "move", "size", "width",
-         "height", "attr", "radius", "center", "front", "back"].forEach((m) => {
-            self[m] = () => self;
-        });
-        return self;
-    },
-
-    // Pick the drawing named by config.image, falling back to Default.
     drawCar: function (config) {
-        const name = config.image || "Default";
-        const draw = this.carImages[name] || this.carImages.Default;
-        if (!this.carImages[name]) {
-            console.log(this.name + ": unknown image '" + name + "', using Default");
-        }
-        return draw.call(this, config);
-    },
-
-    drawDefault: function (config) {
         const baseColor = config.colors.car;
         const textColor = config.colors.text;
         const batteryColor = config.colors.emptyBattery;
@@ -388,158 +364,6 @@ Module.register("MMM-MyToyota", {
             antenna,
             antennaTop
         }
-    },
-
-    /*
-     * "Touring" — a bZ4X Touring seen from the side, facing left.
-     *
-     * Proportions taken off a factory side-on photo rather than from memory:
-     *   length : height          about 2.8 : 1
-     *   wheel diameter           about 43% of overall height
-     *   wheelbase                0.18 to 0.80 of the length
-     *   glass                    shallow, roughly a third of the body height
-     * The defining features are the big squared black wheel-arch flares and
-     * the sill cladding, the nose dropping steeply to a low pointed bumper,
-     * and a raked tailgate with a roof spoiler. Roof rails stand proud.
-     *
-     * Laid out in the 400x400 viewbox; unrelated to drawDefault's positions.
-     */
-    drawTouring: function (config) {
-        const baseColor = config.colors.car;
-        const textColor = config.colors.text;
-        const darkColor = config.colors.wheels;
-        // Arches are cut by painting the background over the body, so this
-        // has to match what the mirror sits on.
-        const bg = config.colors.background || "black";
-        const svg = SVG(this.drawingId()).size(config.size, config.size)
-            .viewbox(0, 0, 400, 400);
-
-        const NOSE = 12, TAIL = 388;
-        const ROOF = 164, BELT = 210, SILL = 284, GROUND = 300;
-        const WHEEL_R = 29, AXLE_Y = GROUND - WHEEL_R;
-        const FRONT_X = 82, REAR_X = 312;
-        const FLARE_R = WHEEL_R + 14;
-
-        // Charging point, left of the car, behind the body.
-        const chargerColor = config.colors.charger || baseColor;
-        const wall = svg.rect(9, 120).move(0, 180).fill(darkColor).hide();
-        const chargerBox = svg.rect(22, 32).move(-8, 210).radius(4)
-            .fill(chargerColor).stroke({ width: 2, color: darkColor }).hide();
-        const cableConnected = svg.path("M14 242 C 14 292, 28 296, 28 258")
-            .fill("none").stroke({ width: 5, color: config.colors.chargingSign }).hide();
-        const cableDisConnected = svg.path("M14 242 C 14 288, 22 296, 16 306")
-            .fill("none").stroke({ width: 5, color: darkColor }).hide();
-
-        const car = svg.group().attr("id", "car");
-
-        // Roof rails, standing proud of the roof.
-        car.rect(168, 6).move(166, ROOF - 12).radius(3).fill(darkColor);
-        car.rect(8, 8).move(174, ROOF - 7).fill(darkColor);
-        car.rect(8, 8).move(320, ROOF - 7).fill(darkColor);
-
-        // Body: steep nose, shallow glass, raked tailgate.
-        const ROOF_FRONT_X = 168, ROOF_REAR_X = 322;
-        const body = car.path(
-            `M${NOSE} ${SILL} L${NOSE} 250 L28 234 L100 ${BELT + 2} L150 170 ` +
-            `L${ROOF_FRONT_X} ${ROOF} L${ROOF_REAR_X} ${ROOF} L340 170 ` +
-            `L368 198 L380 214 L${TAIL} 232 L${TAIL} ${SILL} Z`)
-            .fill(baseColor);
-
-        // Glass, as one dark band with body-coloured pillars over it.
-        car.polygon(`154,174 330,172 352,${BELT - 2} 122,${BELT - 2}`).fill(darkColor);
-        car.rect(7, BELT - 176).move(212, 174).fill(baseColor);
-        car.rect(7, BELT - 176).move(268, 174).fill(baseColor);
-        const top = car.polygon(`326,172 350,${BELT - 2} 338,${BELT - 2} 316,174`).fill(baseColor);
-
-        // Black lower cladding along the sill, and the low front bumper.
-        car.rect(TAIL - NOSE, 14).move(NOSE, SILL - 14).fill(darkColor);
-        // Angular headlight and the rear light bar.
-        const leftLight = car.polygon("20,246 52,234 56,242 24,254").fill(config.colors.lightsOff);
-        const rightLight = car.rect(16, 6).move(TAIL - 20, 228).radius(2).fill(config.colors.lightsOff);
-
-        // Arches: cut the body, then the chunky black flares.
-        const arch = (cx) =>
-            `M${cx - FLARE_R} ${SILL - 2} L${cx - FLARE_R} ${AXLE_Y} ` +
-            `A${FLARE_R} ${FLARE_R} 0 0 1 ${cx + FLARE_R} ${AXLE_Y} ` +
-            `L${cx + FLARE_R} ${SILL - 2} L${cx + WHEEL_R + 1} ${SILL - 2} ` +
-            `L${cx + WHEEL_R + 1} ${AXLE_Y} ` +
-            `A${WHEEL_R + 1} ${WHEEL_R + 1} 0 0 0 ${cx - WHEEL_R - 1} ${AXLE_Y} ` +
-            `L${cx - WHEEL_R - 1} ${SILL - 2} Z`;
-        svg.circle((WHEEL_R + 1) * 2).center(FRONT_X, AXLE_Y).fill(bg);
-        svg.circle((WHEEL_R + 2) * 2).center(REAR_X, AXLE_Y).fill(bg);
-        svg.path(arch(FRONT_X)).fill(darkColor);
-        svg.path(arch(REAR_X)).fill(darkColor);
-
-        const leftWheel = svg.circle(WHEEL_R * 2).center(FRONT_X, AXLE_Y).fill(darkColor);
-        const rightWheel = svg.circle(WHEEL_R * 2).center(REAR_X, AXLE_Y).fill(darkColor);
-        svg.circle(WHEEL_R * 1.24).center(FRONT_X, AXLE_Y).fill(baseColor).opacity(0.85);
-        svg.circle(WHEEL_R * 1.24).center(REAR_X, AXLE_Y).fill(baseColor).opacity(0.85);
-        svg.circle(WHEEL_R * 0.5).center(FRONT_X, AXLE_Y).fill(darkColor);
-        svg.circle(WHEEL_R * 0.5).center(REAR_X, AXLE_Y).fill(darkColor);
-
-        // Battery, on the front door.
-        const battery = svg.group().attr("id", "battery");
-        const batteryBody = battery.rect(96, 30).move(132, 224).radius(5)
-            .fill(baseColor).hide();
-        const batteryTop = battery.rect(7, 14).move(228, 232).radius(2)
-            .fill(baseColor).hide();
-        const batteryLevel = batteryBody.clone().attr("id", "battery_level");
-        const batteryPercent = svg.text("")
-            .move(180, 225)
-            .font({ size: 24, anchor: "middle", fill: config.colors.batteryPercent })
-            .attr("id", "battery_percent");
-
-        const charging = svg.path("M248 218 l-12 22 l10 0 l-6 18 l16 -24 l-10 0 l8 -16 z")
-            .fill(config.colors.chargingSign).hide();
-
-        // Readouts outside the body, where there is contrast.
-        const distance = svg.text("")
-            .move(NOSE, 322)
-            .font({ size: 21, anchor: "start", fill: textColor })
-            .attr("id", "distance");
-        const range = svg.text("")
-            .move(TAIL, 322)
-            .font({ size: 21, anchor: "end", fill: textColor, weight: 600 })
-            .attr("id", "range");
-        const remainingChargingTime = svg.text("")
-            .move(200, 346)
-            .font({ size: 18, anchor: "middle", fill: textColor })
-            .attr("id", "remaining_charging_time");
-        const position = svg.text("")
-            .move(200, 368)
-            .font({ size: 24, anchor: "middle", fill: textColor })
-            .attr("id", "position");
-        const outsideTemp = svg.text("")
-            .move(NOSE, 36)
-            .font({ size: 22, anchor: "start", fill: textColor });
-        const lastConnection = svg.text("MyToyota")
-            .move(TAIL, 36)
-            .font({ size: 18, anchor: "end", fill: textColor });
-
-        // Padlock, above the roof rails.
-        const lockGroup = svg.group().attr("id", "lock").hide();
-        const lockBody = lockGroup.rect(28, 22).move(186, 104).radius(4).fill("#00dd50");
-        const lockShackleLocked = lockGroup.path("M193 104 v-8 a7 7 0 0 1 14 0 v8")
-            .fill("none").stroke({ width: 5, color: "#00dd50" });
-        const lockShackleOpen = lockGroup.path("M193 104 v-8 a7 7 0 0 1 14 0")
-            .fill("none").stroke({ width: 5, color: "#00dd50" }).hide();
-
-        return {
-            svg, body, top, leftLight, rightLight, leftWheel, rightWheel,
-            cableConnected, cableDisConnected, chargerBox, wall, charging,
-            distance, battery, batteryBody, batteryTop, batteryLevel,
-            batteryPercent, range, remainingChargingTime, position,
-            driver: this.noElement(), driverHead: this.noElement(),
-            antenna: this.noElement(),
-            lastConnection, outsideTemp,
-            lockGroup, lockBody, lockShackleLocked, lockShackleOpen
-        };
-    },
-
-    // Add an entry here to offer another drawing via config.image.
-    carImages: {
-        Default: function (config) { return this.drawDefault(config); },
-        Touring: function (config) { return this.drawTouring(config); }
     },
 
     updateCar: function (drawing, carData, config) {

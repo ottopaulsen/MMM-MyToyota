@@ -4,9 +4,8 @@ Show data from your Toyota on [MagicMirror²](https://github.com/MagicMirrorOrg/
 using Toyota Connected Services Europe — the same service the MyToyota phone
 app uses.
 
-It draws the same car graphic as [MMM-WeConnect](https://github.com/ottopaulsen/MMM-WeConnect),
-so battery, range, charging, lock state, odometer and position are shown the
-same way.
+Battery, range, charging state, lock state, odometer and position are drawn on
+a simple picture of a car.
 
 ## Installation
 
@@ -37,7 +36,6 @@ There is nothing to install: the module has no npm dependencies. `svg.js`
 | `vin`                    | –       | Only needed when the account has more than one car. Otherwise the first vehicle is used.               |
 | `refreshIntervalSeconds` | `900`   | How often to poll. Toyota refreshes roughly every 15 minutes, so polling harder gains nothing.         |
 | `size`                   | `300`   | Width of the drawing in pixels.                                                                        |
-| `image`                  | `Default` | Which car drawing to use: `Default` (front view, as MMM-WeConnect) or `Touring` (bZ4X Touring from the side). |
 | `showDistance`           | `true`  | Show the odometer reading.                                                                             |
 | `showPosition`           | `true`  | Look up the car's position and show the name of a known place from `positions`. Set `false` to skip the location call entirely. |
 | `showBattery`            | `true`  | Draw the battery.                                                                                      |
@@ -72,25 +70,6 @@ charge level, range and charging state; a hybrid reports fuel level and fuel
 range instead. Anything the car does not report is simply left out of the
 drawing rather than shown as blank.
 
-## Adding another car drawing
-
-Each drawing is a function returning the same set of named SVG elements, which
-`updateCar` then shows, hides and fills. Because every drawing owns its own
-layout, the readouts can sit wherever suits that shape — the positions in
-`drawTouring` have nothing to do with those in `drawDefault`.
-
-To add one:
-
-1. Write `drawMyCar: function (config) { ... }` next to the others. Build it in
-   the 400x400 viewbox and return the same keys as `drawDefault`. Use
-   `this.noElement()` for anything your drawing does not have — a side view has
-   no driver figure, for instance — and `updateCar` will then call into a
-   harmless stub rather than throwing.
-2. Register it: `carImages: { ..., MyCar: function (c) { return this.drawMyCar(c); } }`
-3. Select it with `image: "MyCar"`.
-
-An unknown name logs a warning and falls back to `Default`.
-
 ## CSS
 
 Override anything in `MMM-MyToyota.css`. The outer element has class
@@ -103,4 +82,3 @@ port of [pytoyoda](https://github.com/pytoyoda/pytoyoda) (MIT), the library
 behind the [Home Assistant Toyota integration](https://github.com/pytoyoda/ha_toyota).
 Toyota does not document this API, so it can change without warning.
 
-The car drawing comes from MMM-WeConnect by Otto Paulsen.

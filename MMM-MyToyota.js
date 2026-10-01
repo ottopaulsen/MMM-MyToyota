@@ -214,7 +214,7 @@ Module.register("MMM-MyToyota", {
         const textColor = config.colors.text;
         const batteryColor = config.colors.emptyBattery;
         const svg = SVG(this.drawingId()).size(config.size, config.size)
-            .viewbox(0, 0, 400, 400);
+            .viewbox(0, 0, 400, 300);
         const car = svg.group()
             .attr('id', 'car');
         const leftWheel = car.rect(40, 60)

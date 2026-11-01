@@ -189,6 +189,9 @@ Module.register("MMM-MyToyota", {
         const baseColor = config.colors.car;
         const textColor = config.colors.text;
         const batteryColor = config.colors.emptyBattery;
+        // The wall box and the cable are not part of the car, so they take the
+        // charger colour rather than being painted with the car.
+        const chargerColor = config.colors.charger || baseColor;
         const svg = SVG(this.drawingId()).size(config.size, config.size)
             .viewbox(0, 0, 400, 300);
         const car = svg.group()
@@ -220,14 +223,13 @@ Module.register("MMM-MyToyota", {
             .fill(config.colors.lightsOff)
             .attr('id', 'right_light');
         const cableConnected = svg.path("M100 160 h-20 a15 15 0 0 1 -15 -15 v-60 a15 15 0 0 0 -15 -15 h-50")
-            .stroke({ width: 8, color: baseColor })
+            .stroke({ width: 8, color: chargerColor })
             .hide()
             .attr('id', 'cable_connected');
         const cableDisConnected = svg.path("M0 70 h20 a15 15 0 0 1 15 15 v180 m-5 15 v-10 a5 5 0 0 1 10 0 v10")
-            .stroke({ width: 8, color: baseColor })
+            .stroke({ width: 8, color: chargerColor })
             .hide()
             .attr('id', 'cable_disconnected');
-        const chargerColor = config.colors.charger || baseColor;
         const chargerBox = svg.rect(15, 50)
             .move(0, 55)
             .radius(2)

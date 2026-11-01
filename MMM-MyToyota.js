@@ -404,31 +404,33 @@ Module.register("MMM-MyToyota", {
             drawing.lockGroup.hide();
         }
 
-        // Cable connection state
-        const isConnected = carData.has("connectionState") && carData.get("connectionState").value === "CONNECTED";
-        if (isNotDriving && carData.has("connectionState")) {
+        // Cable connection state. Toyota's electric status only ever reports
+        // chargingStatus "charging" or "none" — there is no separate "plugged in
+        // but idle" value, and connectionState is never populated. A car that is
+        // charging is necessarily plugged in, so charging is our connection
+        // signal; connectionState is still honoured if a future API provides it.
+        const isCharging = carData.has("charging") && carData.get("charging").value === "CHARGING";
+        const isConnected = isCharging ||
+            (carData.has("connectionState") && carData.get("connectionState").value === "CONNECTED");
+        if (isNotDriving) {
+            // Connected → draw the cable from the wall box to the car. Not
+            // connected → neutral parked view (wall + charger, no cable):
+            // "none" cannot tell "unplugged" from "plugged in and full", so
+            // drawing a cable either way would be a guess.
             if (isConnected) {
                 drawing.cableConnected.show();
-                drawing.cableDisConnected.hide();
-                drawing.wall.show();
-                drawing.chargerBox.show();
             } else {
                 drawing.cableConnected.hide();
-                drawing.cableDisConnected.show();
-                drawing.wall.show();
-                drawing.chargerBox.show();
             }
-        } else if (!isNotDriving) {
+            drawing.cableDisConnected.hide();
+            drawing.wall.show();
+            drawing.chargerBox.show();
+        } else {
+            // Driving → no wall, no charger, no cable.
             drawing.cableConnected.hide();
             drawing.cableDisConnected.hide();
             drawing.wall.hide();
             drawing.chargerBox.hide();
-        } else {
-            // driving=NO but no connectionState data → hide cable entirely, show wall
-            drawing.cableConnected.hide();
-            drawing.cableDisConnected.hide();
-            drawing.wall.show();
-            drawing.chargerBox.show();
         }
 
         // Charging

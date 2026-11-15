@@ -56,6 +56,15 @@ function mapToCarData(data, carData) {
       const s = String(electric.chargingStatus).toLowerCase();
       const charging = s.includes("charging") && !s.includes("not") && !s.includes("none");
       set(carData, "charging", "Charging", charging ? "CHARGING" : "NOT_CHARGING");
+
+      // Cable connection. Toyota reports no separate connection field, so the
+      // cable state is read off chargingStatus: "charging" and "chargeComplete"
+      // both mean the cable is plugged in, "none" means unplugged. Treat it as
+      // connected unless Toyota explicitly says otherwise, so a car that has
+      // finished charging keeps showing the cable until it is actually removed.
+      const disconnected =
+        s === "none" || s.includes("notconnected") || s.includes("disconnected") || s.includes("unplugged");
+      set(carData, "connectionState", "Connection", disconnected ? "DISCONNECTED" : "CONNECTED");
     }
 
     const remaining = num(electric.remainingChargeTime);

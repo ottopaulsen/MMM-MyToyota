@@ -406,11 +406,13 @@ Module.register("MMM-MyToyota", {
             drawing.lockGroup.hide();
         }
 
-        // Cable connection state. Toyota's electric status only ever reports
-        // chargingStatus "charging" or "none" — there is no separate "plugged in
-        // but idle" value, and connectionState is never populated. A car that is
-        // charging is necessarily plugged in, so charging is our connection
-        // signal; connectionState is still honoured if a future API provides it.
+        // Cable connection state. Toyota's electric status has no dedicated
+        // connection field, so the node helper derives connectionState from
+        // chargingStatus: "charging" and "chargeComplete" both mean plugged in,
+        // "none" means unplugged. The cable therefore stays drawn after a charge
+        // finishes, until the cable is actually removed. A charging car is always
+        // connected too, so charging alone is enough even if connectionState is
+        // ever absent.
         const isCharging = carData.has("charging") && carData.get("charging").value === "CHARGING";
         const isConnected = isCharging ||
             (carData.has("connectionState") && carData.get("connectionState").value === "CONNECTED");
